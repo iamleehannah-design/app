@@ -85,11 +85,64 @@ h2 {
   flex-wrap: wrap;
 }
 
+.score-form {
+  margin-top: 2rem;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-weight: 700;
+}
+
+.field-row {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.text-input {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(20, 33, 61, 0.15);
+  background: rgba(255, 255, 255, 0.88);
+  color: #14213d;
+  font: inherit;
+}
+
+.helper-copy {
+  margin: 0.9rem 0 0;
+  color: rgba(20, 33, 61, 0.75);
+}
+
+.sample-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.sample-chip {
+  padding: 0.65rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 33, 61, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  color: #14213d;
+  font: inherit;
+  cursor: pointer;
+}
+
 .primary-button,
 .secondary-button {
   padding: 0.95rem 1.35rem;
   border-radius: 999px;
   font-weight: 700;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -123,6 +176,60 @@ h2 {
   border: 1px solid rgba(20, 33, 61, 0.08);
 }
 
+.results-panel {
+  margin-top: 1.25rem;
+  padding: 1.6rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(20, 33, 61, 0.08);
+  box-shadow: 0 20px 70px rgba(20, 33, 61, 0.1);
+}
+
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.score-chip {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: 16px;
+  background: #14213d;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metric-card {
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: rgba(247, 244, 234, 0.82);
+  border: 1px solid rgba(20, 33, 61, 0.08);
+}
+
+.metric-card h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.metric-card p {
+  margin-bottom: 0.45rem;
+}
+
+.source-panel {
+  margin-top: 1rem;
+}
+
 ul,
 ol {
   margin: 0;
@@ -145,6 +252,10 @@ li + li {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-grid {
     grid-template-columns: 1fr;
   }
 }
