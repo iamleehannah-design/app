@@ -37,6 +37,36 @@ code {
   padding: 3rem 0 4rem;
 }
 
+.tab-strip {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.tab-button {
+  padding: 0.8rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 33, 61, 0.12);
+  background: rgba(255, 255, 255, 0.68);
+  color: #14213d;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.tab-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(20, 33, 61, 0.12);
+}
+
+.tab-button-active {
+  background: #14213d;
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(20, 33, 61, 0.2);
+}
+
 .hero-card {
   padding: 3rem;
   border-radius: 28px;
@@ -83,6 +113,10 @@ h2 {
   margin: 0;
   max-width: 56ch;
   color: rgba(20, 33, 61, 0.78);
+}
+
+.logic-hero h1 {
+  max-width: 10ch;
 }
 
 .actions {
@@ -214,6 +248,88 @@ h2 {
   box-shadow: 0 20px 70px rgba(20, 33, 61, 0.1);
 }
 
+.logic-section {
+  margin-top: 1.25rem;
+}
+
+.flowchart {
+  margin-top: 1rem;
+}
+
+.flow-node {
+  padding: 1.2rem 1.25rem;
+  border-radius: 22px;
+  background: rgba(247, 244, 234, 0.9);
+  border: 1px solid rgba(20, 33, 61, 0.08);
+}
+
+.flow-node strong,
+.flow-node span {
+  display: block;
+}
+
+.flow-node span {
+  margin-top: 0.45rem;
+  color: rgba(20, 33, 61, 0.76);
+}
+
+.flow-node-accent {
+  background: rgba(215, 227, 252, 0.82);
+}
+
+.flow-node-warning {
+  background: rgba(249, 196, 74, 0.22);
+}
+
+.flow-arrow {
+  text-align: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #ef476f;
+  margin: 0.55rem 0;
+}
+
+.flow-branch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.source-catalog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.source-catalog-card {
+  padding: 1.2rem;
+  border-radius: 20px;
+  background: rgba(247, 244, 234, 0.82);
+  border: 1px solid rgba(20, 33, 61, 0.08);
+}
+
+.source-catalog-card h3 {
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+}
+
+.source-catalog-type {
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ef476f;
+}
+
+.source-catalog-role,
+.source-catalog-detail {
+  margin-bottom: 0.7rem;
+  color: rgba(20, 33, 61, 0.78);
+}
+
 .score-header {
   display: flex;
   justify-content: space-between;
@@ -321,6 +437,14 @@ li + li {
   }
 
   .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-branch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-catalog {
     grid-template-columns: 1fr;
   }
 }
