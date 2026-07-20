@@ -23,55 +23,48 @@ const SCORING_SOURCES = [
     name: "Local brand-to-company catalog",
     type: "Built into the app",
     role: "First-pass matching",
-    detail:
-      "The app first tries its own local demo catalog of parent companies, aliases, and brands before calling any public fallback source.",
+    detail: "Matches known parent companies, aliases, and brands first.",
   },
   {
     name: "Wikidata",
     type: "Public company resolution data",
     role: "Fallback company matching",
-    detail:
-      "Used when the local catalog misses. It helps resolve a typed brand or name into a public company or brand-owner entity.",
+    detail: "Fallback matching when the local catalog misses.",
     url: "https://www.wikidata.org/wiki/Wikidata:Data_access",
   },
   {
     name: "Open Food Facts",
     type: "Public product evidence",
     role: "Food and grocery product records",
-    detail:
-      "Provides barcode records and product fields such as brand text, ingredients, packaging clues, and product-level environmental signals.",
+    detail: "Food barcode and product evidence.",
     url: "https://world.openfoodfacts.org/",
   },
   {
     name: "Open Beauty Facts",
     type: "Public product evidence",
     role: "Beauty and personal care product records",
-    detail:
-      "Used the same way as Open Food Facts, but for beauty and personal care products.",
+    detail: "Beauty and personal-care product evidence.",
     url: "https://world.openbeautyfacts.org/",
   },
   {
     name: "Open Products Facts",
     type: "Public product evidence",
     role: "General consumer product records",
-    detail:
-      "Extends coverage beyond food and beauty so the app can gather more direct product evidence when available.",
+    detail: "General product evidence outside food and beauty.",
     url: "https://world.openproductsfacts.org/",
   },
   {
     name: "World Bank Indicators API",
     type: "Public context data",
     role: "Country-level background context",
-    detail:
-      "Supplies benchmark-style context signals such as carbon, renewable-energy, and land-related indicators tied to the resolved company country.",
+    detail: "Country-level carbon, renewable, and land context.",
     url: "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation",
   },
   {
     name: "UN SDG API",
     type: "Public context data",
     role: "SDG alignment context",
-    detail:
-      "Provides Sustainable Development Goal metadata used as light background context in the social and governance portions of the score.",
+    detail: "Light SDG context for social and governance.",
     url: "https://unstats.un.org/SDGAPI/swagger/",
   },
 ];
@@ -161,12 +154,10 @@ function ScoringMethodTab() {
         <p className="eyebrow">Scoring Logic</p>
         <h1>How the score is built</h1>
         <p className="lede">
-          The app does not copy one outside rating. It pulls public evidence, converts
-          that evidence into one internal rubric, and then computes a single score.
+          The app pulls public evidence, converts it into one rubric, and computes one score.
         </p>
         <p className="hero-note">
-          That also explains why some random names can still show a number today:
-          a context-only estimate can remain visible after a weak public-company match.
+          Random names can still show a number when only context data is available.
         </p>
       </section>
 
@@ -181,17 +172,17 @@ function ScoringMethodTab() {
             <div className="flow-arrow" aria-hidden="true">↓</div>
             <div className="flow-node">
               <strong>2. Resolve the company</strong>
-              <span>Try the local brand catalog first, then public Wikidata fallback</span>
+              <span>Try the local catalog, then Wikidata</span>
             </div>
             <div className="flow-arrow" aria-hidden="true">↓</div>
             <div className="flow-node">
               <strong>3. Gather evidence</strong>
-              <span>Open Food Facts, Open Beauty Facts, Open Products Facts, World Bank, and UN SDG inputs</span>
+              <span>Product evidence plus background context</span>
             </div>
             <div className="flow-arrow" aria-hidden="true">↓</div>
             <div className="flow-node">
               <strong>4. Convert everything into one rubric</strong>
-              <span>Environmental, disclosure, traceability, evidence coverage, and context signals all become 0-100 inputs</span>
+              <span>All signals become shared 0-100 inputs</span>
             </div>
             <div className="flow-arrow" aria-hidden="true">↓</div>
             <div className="flow-branch-grid">
@@ -228,9 +219,9 @@ function ScoringMethodTab() {
           <h2>How source disagreement is handled</h2>
           <ul>
             <li>The app does not blindly trust one website.</li>
-            <li>It finds the middle value, then reduces the weight of scores that drift too far away from that middle.</li>
+            <li>It finds the middle value and downweights outliers.</li>
             <li>If sources still disagree a lot, the app lowers confidence.</li>
-            <li>This helps reduce obvious outliers, but it does not fix weak company matching by itself.</li>
+            <li>This helps with outliers, not weak matching.</li>
           </ul>
         </article>
       </section>
@@ -240,9 +231,9 @@ function ScoringMethodTab() {
           <h2>Why fake-looking scores can appear</h2>
           <ul>
             <li>A typed name can miss the local catalog but still match a public Wikidata entity.</li>
-            <li>If that happens, the app can still compute a context-based number from public background signals.</li>
-            <li>Right now, that number can still appear even when product evidence count is zero.</li>
-            <li>That is why random names can sometimes look more “scored” than they really are.</li>
+            <li>The app can still compute a context-based number.</li>
+            <li>That number can still appear when product evidence is zero.</li>
+            <li>That is why some random names can look more scored than they are.</li>
           </ul>
         </article>
 
@@ -282,7 +273,7 @@ function ScoringMethodTab() {
   );
 }
 
-function ScoreDetails({ title, scoreResult }) {
+function ScoreDetails({ title, scoreResult, compact = false }) {
   if (!scoreResult) {
     return null;
   }
@@ -290,17 +281,17 @@ function ScoreDetails({ title, scoreResult }) {
   const banner = getScoreBanner(scoreResult);
 
   return (
-    <section className="results-panel">
+    <section className={`results-panel${compact ? " results-panel-compact" : ""}`}>
       <div className="score-header">
         <div>
           <p className="eyebrow">{title}</p>
           <h2>{scoreResult.resolvedCompany || scoreResult.input}</h2>
           <p className="result-summary">
-            Match method: <strong>{formatMatchType(scoreResult.matchedBy)}</strong>
+            Match: <strong>{formatMatchType(scoreResult.matchedBy)}</strong>
             {" · "}
-            Match confidence: <strong>{formatConfidence(scoreResult.confidence)}</strong>
+            Confidence: <strong>{formatConfidence(scoreResult.confidence)}</strong>
             {" · "}
-            Score confidence: <strong>{formatConfidence(scoreResult.scoreConfidence)}</strong>
+            Score: <strong>{formatConfidence(scoreResult.scoreConfidence)}</strong>
           </p>
         </div>
         <p className="score-chip">
@@ -322,53 +313,61 @@ function ScoreDetails({ title, scoreResult }) {
         <article className="metric-card">
           <h3>Environmental</h3>
           <p>{formatScore(scoreResult.breakdown?.environmental)}</p>
-          <p className="metric-note">Unified product-environment signal plus light context.</p>
+          {!compact ? <p className="metric-note">Product signal plus light context.</p> : null}
         </article>
         <article className="metric-card">
           <h3>Social</h3>
           <p>{formatScore(scoreResult.breakdown?.social)}</p>
-          <p className="metric-note">Unified disclosure signal, evidence coverage, and SDG context.</p>
+          {!compact ? <p className="metric-note">Disclosure, evidence coverage, and SDG context.</p> : null}
         </article>
         <article className="metric-card">
           <h3>Governance</h3>
           <p>{formatScore(scoreResult.breakdown?.governance)}</p>
-          <p className="metric-note">Unified traceability, disclosure, and evidence coverage.</p>
+          {!compact ? <p className="metric-note">Traceability, disclosure, and coverage.</p> : null}
         </article>
       </div>
 
-      <div className="content-grid source-panel">
-        <article className="info-panel">
-          <h2>Match details</h2>
-          <ul>
-            <li>Resolved company: {scoreResult.resolvedCompany || "No match yet"}</li>
-            <li>Score status: {scoreResult.scoreStatus}</li>
-            <li>Scoring mode: {scoreResult.scoreStatus === "scored" ? "verified company score" : scoreResult.scoreStatus === "contextual-estimate" ? "contextual estimate" : "insufficient evidence"}</li>
-            <li>Rubric version: {scoreResult.rubricVersion || "standard"}</li>
-            <li>Product evidence count: {scoreResult.breakdown?.productCoverage ?? 0}</li>
-            <li>Beauty evidence count: {scoreResult.breakdown?.beautyCoverage ?? 0}</li>
-            <li>General products evidence count: {scoreResult.breakdown?.productsCoverage ?? 0}</li>
-            <li>Evidence coverage score: {formatScore(scoreResult.breakdown?.evidenceCoverage)}</li>
-            <li>Source agreement: {scoreResult.sourceAgreement?.status || "not-applicable"}</li>
-          </ul>
-        </article>
+      {compact ? (
+        <div className="compact-meta">
+          <p>Status: <strong>{scoreResult.scoreStatus || "none"}</strong></p>
+          <p>Evidence: <strong>{scoreResult.breakdown?.productCoverage ?? 0}</strong></p>
+          <p>Sources: <strong>{scoreResult.sources?.length ?? 0}</strong></p>
+        </div>
+      ) : (
+        <div className="content-grid source-panel">
+          <article className="info-panel">
+            <h2>Match details</h2>
+            <ul>
+              <li>Resolved company: {scoreResult.resolvedCompany || "No match yet"}</li>
+              <li>Score status: {scoreResult.scoreStatus}</li>
+              <li>Scoring mode: {scoreResult.scoreStatus === "scored" ? "verified company score" : scoreResult.scoreStatus === "contextual-estimate" ? "contextual estimate" : "insufficient evidence"}</li>
+              <li>Rubric version: {scoreResult.rubricVersion || "standard"}</li>
+              <li>Product evidence count: {scoreResult.breakdown?.productCoverage ?? 0}</li>
+              <li>Beauty evidence count: {scoreResult.breakdown?.beautyCoverage ?? 0}</li>
+              <li>General products evidence count: {scoreResult.breakdown?.productsCoverage ?? 0}</li>
+              <li>Evidence coverage score: {formatScore(scoreResult.breakdown?.evidenceCoverage)}</li>
+              <li>Source agreement: {scoreResult.sourceAgreement?.status || "not-applicable"}</li>
+            </ul>
+          </article>
 
-        <article className="info-panel">
-          <h2>Sources used</h2>
-          <ul>
-            {scoreResult.sources?.length ? (
-              scoreResult.sources.map((source) => (
-                <li key={source.source}>
-                  <a href={source.url} target="_blank" rel="noreferrer">
-                    {source.source}
-                  </a>
-                </li>
-              ))
-            ) : (
-              <li>No source data was returned for this lookup.</li>
-            )}
-          </ul>
-        </article>
-      </div>
+          <article className="info-panel">
+            <h2>Sources used</h2>
+            <ul>
+              {scoreResult.sources?.length ? (
+                scoreResult.sources.map((source) => (
+                  <li key={source.source}>
+                    <a href={source.url} target="_blank" rel="noreferrer">
+                      {source.source}
+                    </a>
+                  </li>
+                ))
+              ) : (
+                <li>No source data was returned for this lookup.</li>
+              )}
+            </ul>
+          </article>
+        </div>
+      )}
 
       {scoreResult.alternatives?.length ? (
         <p className="helper-copy">Other possible matches: {scoreResult.alternatives.join(", ")}.</p>
@@ -482,6 +481,8 @@ function App() {
     }
   }
 
+  const barcodeScoreResult = barcodeResult?.scoreResult || null;
+
   return (
     <main className="page-shell">
       <section className="tab-strip" aria-label="App sections">
@@ -507,14 +508,10 @@ function App() {
             <p className="eyebrow">MVP Flow</p>
             <h1>Type a name now. Add barcode lookup without paid APIs.</h1>
             <p className="lede">
-              This version supports both direct typing and manual barcode entry. Both
-              paths resolve a shopper-facing product or brand into a parent company
-              before scoring it.
+              Type a brand or barcode and get the company score.
             </p>
             <p className="hero-note">
-              Barcode and product lookups use public Open Food Facts family datasets
-              plus public Wikidata company data, so the app stays on free, open data
-              for this MVP.
+              This MVP uses free public data only.
             </p>
           </section>
 
@@ -522,7 +519,7 @@ function App() {
             <article className="info-panel lookup-card">
               <h2>Search by product or company</h2>
               <p className="input-hint">
-                Start with what the shopper can type: a product, brand, or parent company.
+                Type a product, brand, or company.
               </p>
 
               <form className="score-form" onSubmit={handleCompanySubmit}>
@@ -562,21 +559,31 @@ function App() {
 
               <p className="helper-copy">
                 {isCompanyPreviewLoading
-                  ? "Checking public company data for a better match..."
+                  ? "Checking for a match..."
                   : companyPreview
                   ? companyPreview.resolvedCompany
-                    ? `Best match so far: ${companyPreview.resolvedCompany.canonicalName} via ${formatMatchType(
+                    ? `Best match: ${companyPreview.resolvedCompany.canonicalName} via ${formatMatchType(
                         companyPreview.matchedBy,
                       )} (${formatConfidence(companyPreview.confidence)} confidence).`
-                    : "No confident company match yet. Try the brand or parent company name."
-                  : "This is the fastest path to a working demo before camera scanning."}
+                    : "No confident match yet."
+                  : "Quickest way to test the app."}
               </p>
+
+              {companyError ? (
+                <p className="status-banner status-banner-error lookup-status">{companyError}</p>
+              ) : null}
+
+              {isCompanyLoading ? (
+                <p className="status-banner lookup-status">Getting score...</p>
+              ) : null}
+
+              <ScoreDetails title="Typed result" scoreResult={companyResult} compact />
             </article>
 
             <article className="info-panel lookup-card">
               <h2>Lookup by barcode</h2>
               <p className="input-hint">
-                Enter UPC or EAN digits from the package. This MVP submits only when the user clicks the button, which stays within public API rate limits much better than auto-searching every keystroke.
+                Enter a UPC or EAN barcode.
               </p>
 
               <form className="score-form" onSubmit={handleBarcodeSubmit}>
@@ -601,8 +608,39 @@ function App() {
               </form>
 
               <p className="helper-copy">
-                Barcode lookup is public and free, but the upstream dataset can temporarily rate-limit anonymous traffic during busy periods.
+                Public and free. Upstream limits can be slow sometimes.
               </p>
+
+              {barcodeError ? (
+                <p className="status-banner status-banner-error lookup-status">{barcodeError}</p>
+              ) : null}
+
+              {isBarcodeLoading ? (
+                <p className="status-banner lookup-status">Checking barcode...</p>
+              ) : null}
+
+              {barcodeResult ? (
+                <section className="results-panel results-panel-compact">
+                  <div className="score-header">
+                    <div>
+                      <p className="eyebrow">Barcode result</p>
+                      <h2>{barcodeResult.product.productName}</h2>
+                      <p className="result-summary">
+                        Brand: <strong>{barcodeResult.product.brandText || "Unknown"}</strong>
+                      </p>
+                    </div>
+                    <p className="score-chip barcode-value">{barcodeResult.barcode}</p>
+                  </div>
+
+                  <div className="compact-meta">
+                    <p>Company: <strong>{barcodeResult.matchedCompany || "Not matched"}</strong></p>
+                    <p>Match: <strong>{barcodeResult.matchedBy ? formatMatchType(barcodeResult.matchedBy) : "none"}</strong></p>
+                    <p>Confidence: <strong>{formatConfidence(barcodeResult.confidence)}</strong></p>
+                  </div>
+                </section>
+              ) : null}
+
+              <ScoreDetails title="Barcode score" scoreResult={barcodeScoreResult} compact />
             </article>
           </section>
 
@@ -610,9 +648,9 @@ function App() {
             <article className="info-panel">
               <h2>What this MVP proves</h2>
               <ul>
-                <li>Typed brand and company input can already drive the app.</li>
-                <li>Barcode lookup can feed the exact same parent-company resolver.</li>
-                <li>Logo detection can plug into this same matching layer later.</li>
+                <li>Typing works now.</li>
+                <li>Barcode lookup uses the same company resolver.</li>
+                <li>Logo detection can plug in later.</li>
               </ul>
             </article>
 
@@ -620,94 +658,11 @@ function App() {
               <h2>Current catalog coverage</h2>
               <ul>
                 <li>Local demo companies: {demoCompanies.join(", ")}.</li>
-                <li>Best early coverage: food, beverages, beauty, and household brands.</li>
-                <li>The next accuracy gain comes from expanding the brand-to-company catalog.</li>
+                <li>Best coverage: food, drinks, beauty, and household brands.</li>
+                <li>Next gain: expand the brand catalog.</li>
               </ul>
             </article>
           </section>
-
-          {companyError ? (
-            <p className="status-banner status-banner-error">{companyError}</p>
-          ) : null}
-
-          {isCompanyLoading ? (
-            <p className="status-banner">Pulling open data for {companyQuery.trim()}...</p>
-          ) : null}
-
-          <ScoreDetails title="Typed Lookup Result" scoreResult={companyResult} />
-
-          {barcodeError ? (
-            <p className="status-banner status-banner-error">{barcodeError}</p>
-          ) : null}
-
-          {isBarcodeLoading ? (
-            <p className="status-banner">Looking up barcode {barcodeQuery}...</p>
-          ) : null}
-
-          {barcodeResult ? (
-            <section className="results-panel">
-              <div className="score-header">
-                <div>
-                  <p className="eyebrow">Barcode Result</p>
-                  <h2>{barcodeResult.product.productName}</h2>
-                  <p className="result-summary">
-                    Barcode: <strong>{barcodeResult.barcode}</strong>
-                    {" · "}
-                    Source:{" "}
-                    <a href={barcodeResult.product.sourceUrl} target="_blank" rel="noreferrer">
-                      {barcodeResult.product.sourceName}
-                    </a>
-                  </p>
-                </div>
-                <p className="score-chip barcode-value">{barcodeResult.barcode}</p>
-              </div>
-
-              <div className="content-grid source-panel">
-                <article className="info-panel">
-                  <h2>Product details</h2>
-                  <ul>
-                    <li>Product name: {barcodeResult.product.productName}</li>
-                    <li>Brand text: {barcodeResult.product.brandText || "Not available"}</li>
-                    <li>Quantity: {barcodeResult.product.quantity || "Not available"}</li>
-                    <li>
-                      Product page:{" "}
-                      <a href={barcodeResult.product.productUrl} target="_blank" rel="noreferrer">
-                        Open record
-                      </a>
-                    </li>
-                  </ul>
-                </article>
-
-                <article className="info-panel">
-                  <h2>Company resolution</h2>
-                  {barcodeResult.matchedCompany ? (
-                    <ul>
-                      <li>Resolved company: {barcodeResult.matchedCompany}</li>
-                      <li>Matched from: {barcodeResult.matchedInput}</li>
-                      <li>Matched via: {formatMatchType(barcodeResult.matchedBy)}</li>
-                      <li>Confidence: {formatConfidence(barcodeResult.confidence)}</li>
-                    </ul>
-                  ) : (
-                    <>
-                      <p className="helper-copy">
-                        The product record was found, but the current local brand catalog could not confidently map it to a parent company.
-                      </p>
-                      {barcodeResult.alternatives?.length ? (
-                        <p className="helper-copy">
-                          Nearby local companies: {barcodeResult.alternatives.join(", ")}.
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-                </article>
-              </div>
-            </section>
-          ) : null}
-
-          <ScoreDetails
-            title="Score From Barcode Match"
-            scoreResult={barcodeResult?.scoreResult || null}
-          />
         </>
       ) : (
         <ScoringMethodTab />
