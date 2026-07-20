@@ -79,14 +79,36 @@ h2 {
   font-size: 1.1rem;
 }
 
+.hero-note {
+  margin: 0;
+  max-width: 56ch;
+  color: rgba(20, 33, 61, 0.78);
+}
+
 .actions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
 }
 
+.lookup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.lookup-card {
+  min-height: 100%;
+}
+
 .score-form {
   margin-top: 2rem;
+}
+
+.input-hint {
+  margin-bottom: 0.25rem;
+  color: rgba(20, 33, 61, 0.78);
 }
 
 .field-label {
@@ -162,6 +184,13 @@ h2 {
   transform: translateY(-2px);
 }
 
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -203,6 +232,34 @@ h2 {
   font-weight: 800;
 }
 
+.barcode-value {
+  font-size: 0.98rem;
+  letter-spacing: 0.08em;
+}
+
+.result-summary {
+  margin-bottom: 0;
+  color: rgba(20, 33, 61, 0.78);
+}
+
+.status-banner {
+  margin: 1rem 0 0;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  background: rgba(20, 33, 61, 0.08);
+  color: #14213d;
+}
+
+.status-banner-error {
+  background: rgba(239, 71, 111, 0.12);
+  color: #7a1431;
+}
+
+.status-banner-warning {
+  background: rgba(249, 196, 74, 0.22);
+  color: #6a4d00;
+}
+
 .result-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -224,6 +281,10 @@ h2 {
 
 .metric-card p {
   margin-bottom: 0.45rem;
+}
+
+.metric-note {
+  color: rgba(20, 33, 61, 0.72);
 }
 
 .source-panel {
@@ -252,6 +313,10 @@ li + li {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lookup-grid {
     grid-template-columns: 1fr;
   }
 
