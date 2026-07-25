@@ -18,6 +18,8 @@ const SAMPLE_COMPANY_INPUTS = [
   "Hellmann's",
 ];
 
+const SITE_NAME = "BrandLens";
+
 const SCORING_SOURCES = [
   {
     name: "Local brand-to-company catalog",
@@ -151,7 +153,7 @@ function ScoringMethodTab() {
   return (
     <>
       <section className="hero-card logic-hero">
-        <p className="eyebrow">Scoring Logic</p>
+        <p className="eyebrow">{SITE_NAME} Logic</p>
         <h1>How the score is built</h1>
         <p className="lede">
           The app pulls public evidence, converts it into one rubric, and computes one score.
@@ -505,8 +507,8 @@ function App() {
       {activeTab === "lookup" ? (
         <>
           <section className="hero-card">
-            <p className="eyebrow">MVP Flow</p>
-            <h1>Type a name now. Add barcode lookup without paid APIs.</h1>
+            <p className="eyebrow">{SITE_NAME}</p>
+            <h1>{SITE_NAME} helps you check the company behind a product.</h1>
             <p className="lede">
               Type a brand or barcode and get the company score.
             </p>
