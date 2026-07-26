@@ -508,7 +508,7 @@ function App() {
         <>
           <section className="hero-card">
             <p className="eyebrow">{SITE_NAME}</p>
-            <h1>{SITE_NAME} helps you check the company behind a product.</h1>
+            <h1>Look past the label.</h1>
             <p className="lede">
               Type a brand or barcode and get the company score.
             </p>
