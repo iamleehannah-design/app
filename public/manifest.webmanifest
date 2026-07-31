@@ -1,0 +1,25 @@
+{
+  "name": "BrandLens",
+  "short_name": "BrandLens",
+  "description": "Look past the label. Check the company behind a product by brand or barcode.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f4ea",
+  "theme_color": "#14213d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icons/brandlens-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/brandlens-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

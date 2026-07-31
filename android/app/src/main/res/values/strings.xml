@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BrandLens</string>
+    <string name="title_activity_main">BrandLens</string>
+    <string name="package_name">com.brandlens.app</string>
+    <string name="custom_url_scheme">com.brandlens.app</string>
+</resources>

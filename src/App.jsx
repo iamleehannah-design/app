@@ -4,6 +4,7 @@ import {
   demoCompanies,
   getBarcodeSustainabilityScore,
   getCompanySustainabilityScore,
+  normalizeForMatch,
   resolveCompanyEntity,
   resolveCompanyProfile,
   sanitizeBarcodeInput,
@@ -70,6 +71,9 @@ const SCORING_SOURCES = [
     url: "https://unstats.un.org/SDGAPI/swagger/",
   },
 ];
+
+const RECENT_SEARCHES_KEY = "brandlens-recent-searches";
+const MAX_RECENT_SEARCHES = 6;
 
 function formatScore(value) {
   return typeof value === "number" ? `${value}/100` : "N/A";
@@ -147,6 +151,148 @@ function getScoreBanner(scoreResult) {
   }
 
   return null;
+}
+
+function getScoreStateLabel(scoreResult) {
+  if (!scoreResult) {
+    return "No result";
+  }
+
+  if (scoreResult.scoreStatus === "scored") {
+    return "Verified company score";
+  }
+
+  if (scoreResult.scoreStatus === "contextual-estimate") {
+    return "Estimated from limited evidence";
+  }
+
+  if (scoreResult.scoreStatus === "insufficient-company-specific-data") {
+    return "Not enough evidence yet";
+  }
+
+  return "Needs review";
+}
+
+function isWeakMatch(scoreResult) {
+  if (!scoreResult) {
+    return false;
+  }
+
+  if (!scoreResult.resolvedCompany) {
+    return true;
+  }
+
+  if (scoreResult.confidence < 0.58) {
+    return true;
+  }
+
+  if (scoreResult.scoreStatus !== "scored" && (scoreResult.sources?.length ?? 0) < 2) {
+    return true;
+  }
+
+  return false;
+}
+
+function getTrustSummary(scoreResult) {
+  if (!scoreResult) {
+    return "";
+  }
+
+  if (isWeakMatch(scoreResult)) {
+    return "This match is weak, so BrandLens is holding it more cautiously.";
+  }
+
+  if (scoreResult.scoreStatus === "scored") {
+    return "BrandLens found direct company-specific evidence for this result.";
+  }
+
+  if (scoreResult.scoreStatus === "contextual-estimate") {
+    return "BrandLens found the company, but this number still leans on public background context.";
+  }
+
+  return "BrandLens matched the company, but there is not enough direct evidence for a strong score yet.";
+}
+
+function getResultHowToImprove(scoreResult) {
+  if (!scoreResult) {
+    return "Try another search.";
+  }
+
+  if (scoreResult.scoreStatus === "scored" && !isWeakMatch(scoreResult)) {
+    return "Try barcode or photo lookup if you want another way to confirm the same company.";
+  }
+
+  return "Try a barcode, a clearer logo photo, or the exact company name to get a stronger match.";
+}
+
+function buildRecentSearchEntry(type, label, query) {
+  return {
+    id: `${type}:${query.toLowerCase()}`,
+    type,
+    label,
+    query,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function updateRecentSearches(entries, nextEntry) {
+  const deduped = entries.filter((entry) => entry.id !== nextEntry.id);
+  return [nextEntry, ...deduped].slice(0, MAX_RECENT_SEARCHES);
+}
+
+function extractPhotoCandidates(text) {
+  const uniqueLines = [...new Set(
+    String(text || "")
+      .split(/\n+/)
+      .map((line) =>
+        line
+          .replace(/[^\p{L}\p{N}&'\- ]/gu, " ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter(Boolean),
+  )];
+
+  return uniqueLines
+    .map((line) => {
+      const normalized = normalizeForMatch(line);
+      const compactLength = normalized.replace(/\s+/g, "").length;
+      const wordCount = normalized.split(" ").filter(Boolean).length;
+      const localMatch = resolveCompanyEntity(line);
+
+      let score = compactLength;
+      if (wordCount >= 1 && wordCount <= 4) {
+        score += 10;
+      }
+      if (!/\d{4,}/.test(line)) {
+        score += 4;
+      }
+      if (localMatch.resolvedCompany) {
+        score += 25 + localMatch.confidence * 20;
+      }
+
+      return {
+        line,
+        normalized,
+        localMatch,
+        score,
+      };
+    })
+    .filter((candidate) => candidate.normalized.length >= 3)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 5);
+}
+
+function LookupQuickLinks() {
+  return (
+    <nav className="mini-link-strip" aria-label="Page links">
+      <a className="mini-link" href="#home">Home</a>
+      <a className="mini-link" href="#search">Search</a>
+      <a className="mini-link" href="#photo">Photo</a>
+      <a className="mini-link" href="#recent">Recent</a>
+      <a className="mini-link" href="#about">About</a>
+    </nav>
+  );
 }
 
 function ScoringMethodTab() {
@@ -275,12 +421,20 @@ function ScoringMethodTab() {
   );
 }
 
-function ScoreDetails({ title, scoreResult, compact = false }) {
+function ScoreDetails({ title, scoreResult, compact = false, lookupLabel = "typed search" }) {
   if (!scoreResult) {
     return null;
   }
 
   const banner = getScoreBanner(scoreResult);
+  const weakMatch = isWeakMatch(scoreResult);
+  const stateLabel = getScoreStateLabel(scoreResult);
+  const scoreChipLabel =
+    weakMatch && scoreResult.scoreStatus !== "scored"
+      ? "Needs review"
+      : typeof scoreResult.score === "number"
+      ? formatScore(scoreResult.score)
+      : "No score yet";
 
   return (
     <section className={`results-panel${compact ? " results-panel-compact" : ""}`}>
@@ -288,6 +442,7 @@ function ScoreDetails({ title, scoreResult, compact = false }) {
         <div>
           <p className="eyebrow">{title}</p>
           <h2>{scoreResult.resolvedCompany || scoreResult.input}</h2>
+          <p className="result-state">{stateLabel}</p>
           <p className="result-summary">
             Match: <strong>{formatMatchType(scoreResult.matchedBy)}</strong>
             {" · "}
@@ -296,9 +451,7 @@ function ScoreDetails({ title, scoreResult, compact = false }) {
             Score: <strong>{formatConfidence(scoreResult.scoreConfidence)}</strong>
           </p>
         </div>
-        <p className="score-chip">
-          {typeof scoreResult.score === "number" ? formatScore(scoreResult.score) : "No score yet"}
-        </p>
+        <p className={`score-chip${weakMatch ? " score-chip-muted" : ""}`}>{scoreChipLabel}</p>
       </div>
 
       {banner ? (
@@ -310,6 +463,31 @@ function ScoreDetails({ title, scoreResult, compact = false }) {
           {banner.message}
         </p>
       ) : null}
+
+      {weakMatch ? (
+        <p className="status-banner status-banner-warning">
+          This result matched weakly, so BrandLens is being cautious instead of acting fully confident.
+        </p>
+      ) : null}
+
+      <div className="trust-strip">
+        <article className="trust-card">
+          <h3>Why you got this result</h3>
+          <p>{getTrustSummary(scoreResult)}</p>
+        </article>
+        <article className="trust-card">
+          <h3>What BrandLens used</h3>
+          <p>
+            {lookupLabel} → {scoreResult.resolvedCompany || "no resolved company"} →{" "}
+            {scoreResult.sources?.length ?? 0} public source
+            {scoreResult.sources?.length === 1 ? "" : "s"}.
+          </p>
+        </article>
+        <article className="trust-card">
+          <h3>How to strengthen it</h3>
+          <p>{getResultHowToImprove(scoreResult)}</p>
+        </article>
+      </div>
 
       <div className="result-grid">
         <article className="metric-card">
@@ -331,7 +509,7 @@ function ScoreDetails({ title, scoreResult, compact = false }) {
 
       {compact ? (
         <div className="compact-meta">
-          <p>Status: <strong>{scoreResult.scoreStatus || "none"}</strong></p>
+          <p>Status: <strong>{stateLabel}</strong></p>
           <p>Evidence: <strong>{scoreResult.breakdown?.productCoverage ?? 0}</strong></p>
           <p>Sources: <strong>{scoreResult.sources?.length ?? 0}</strong></p>
         </div>
@@ -380,16 +558,26 @@ function ScoreDetails({ title, scoreResult, compact = false }) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("lookup");
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isInstallAvailable, setIsInstallAvailable] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
   const [barcodeQuery, setBarcodeQuery] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [photoCandidates, setPhotoCandidates] = useState([]);
+  const [photoExtractedText, setPhotoExtractedText] = useState("");
   const [companyResult, setCompanyResult] = useState(null);
   const [barcodeResult, setBarcodeResult] = useState(null);
+  const [photoResult, setPhotoResult] = useState(null);
   const [companyError, setCompanyError] = useState("");
   const [barcodeError, setBarcodeError] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const [isCompanyLoading, setIsCompanyLoading] = useState(false);
   const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [companyPreview, setCompanyPreview] = useState(null);
   const [isCompanyPreviewLoading, setIsCompanyPreviewLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
 
   const deferredCompanyQuery = useDeferredValue(companyQuery);
 
@@ -435,6 +623,65 @@ function App() {
     };
   }, [deferredCompanyQuery]);
 
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+      setIsInstallAvailable(true);
+    }
+
+    function handleAppInstalled() {
+      setInstallPromptEvent(null);
+      setIsInstallAvailable(false);
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (saved) {
+        setRecentSearches(JSON.parse(saved));
+      }
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches));
+    } catch {
+      // Ignore storage failures in private browsing or restricted environments.
+    }
+  }, [recentSearches]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
+
+  async function handleInstallApp() {
+    if (!installPromptEvent) {
+      return;
+    }
+
+    await installPromptEvent.prompt();
+    await installPromptEvent.userChoice;
+    setInstallPromptEvent(null);
+    setIsInstallAvailable(false);
+  }
+
   async function handleCompanySubmit(event) {
     event.preventDefault();
     const trimmedQuery = companyQuery.trim();
@@ -451,6 +698,9 @@ function App() {
     try {
       const nextResult = await getCompanySustainabilityScore(trimmedQuery);
       setCompanyResult(nextResult);
+      setRecentSearches((current) =>
+        updateRecentSearches(current, buildRecentSearchEntry("typed", trimmedQuery, trimmedQuery)),
+      );
     } catch (error) {
       setCompanyResult(null);
       setCompanyError("Company lookup failed right now. Try again in a moment.");
@@ -475,6 +725,16 @@ function App() {
     try {
       const nextResult = await getBarcodeSustainabilityScore(normalizedBarcode);
       setBarcodeResult(nextResult);
+      setRecentSearches((current) =>
+        updateRecentSearches(
+          current,
+          buildRecentSearchEntry(
+            "barcode",
+            nextResult.product?.productName || normalizedBarcode,
+            normalizedBarcode,
+          ),
+        ),
+      );
     } catch (error) {
       setBarcodeResult(null);
       setBarcodeError(getFriendlyBarcodeError(error));
@@ -483,7 +743,99 @@ function App() {
     }
   }
 
+  function handlePhotoFileChange(event) {
+    const nextFile = event.target.files?.[0] || null;
+
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+
+    setPhotoFile(nextFile);
+    setPhotoPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
+    setPhotoCandidates([]);
+    setPhotoExtractedText("");
+    setPhotoError("");
+    setPhotoResult(null);
+  }
+
+  async function scorePhotoCandidate(candidateLine, candidates, extractedText) {
+    const scoreResult = await getCompanySustainabilityScore(candidateLine);
+
+    setPhotoResult({
+      extractedText,
+      selectedQuery: candidateLine,
+      candidates,
+      scoreResult,
+    });
+    setRecentSearches((current) =>
+      updateRecentSearches(current, buildRecentSearchEntry("photo", candidateLine, candidateLine)),
+    );
+  }
+
+  async function handlePhotoSubmit(event) {
+    event.preventDefault();
+
+    if (!photoFile) {
+      setPhotoError("Choose or take a photo first.");
+      setPhotoResult(null);
+      return;
+    }
+
+    setIsPhotoLoading(true);
+    setPhotoError("");
+
+    let worker;
+
+    try {
+      const { createWorker } = await import("tesseract.js");
+      worker = await createWorker("eng");
+
+      const recognition = await worker.recognize(photoFile);
+      const extractedText = recognition.data.text?.trim() || "";
+      const candidates = extractPhotoCandidates(extractedText);
+      const bestCandidate =
+        candidates.find((candidate) => candidate.localMatch.resolvedCompany) || candidates[0] || null;
+
+      setPhotoExtractedText(extractedText);
+      setPhotoCandidates(candidates);
+
+      if (!bestCandidate) {
+        setPhotoResult(null);
+        setPhotoError("We could not detect the brand from this picture. Please type the product, brand, or company name into the text box instead.");
+        return;
+      }
+
+      await scorePhotoCandidate(bestCandidate.line, candidates, extractedText);
+    } catch (error) {
+      setPhotoResult(null);
+      setPhotoError("We could not detect the brand from this picture. Please type the product, brand, or company name into the text box instead.");
+    } finally {
+      if (worker) {
+        await worker.terminate();
+      }
+      setIsPhotoLoading(false);
+    }
+  }
+
   const barcodeScoreResult = barcodeResult?.scoreResult || null;
+  const photoScoreResult = photoResult?.scoreResult || null;
+
+  function applyRecentSearch(search) {
+    if (search.type === "barcode") {
+      setBarcodeQuery(search.query);
+      setActiveTab("lookup");
+      window.location.hash = "search";
+      return;
+    }
+
+    setCompanyQuery(search.query);
+    setActiveTab("lookup");
+    window.location.hash = search.type === "photo" ? "photo" : "search";
+  }
+
+  function clearRecentSearches() {
+    setRecentSearches([]);
+  }
 
   return (
     <main className="page-shell">
@@ -506,19 +858,45 @@ function App() {
 
       {activeTab === "lookup" ? (
         <>
-          <section className="hero-card">
-            <p className="eyebrow">{SITE_NAME}</p>
-            <h1>Look past the label.</h1>
-            <p className="lede">
-              Type a brand or barcode and get the company score.
-            </p>
-            <p className="hero-note">
-              This MVP uses free public data only.
-            </p>
+          <section className="hero-card homepage-hero" id="home">
+            <div className="hero-copy">
+              <p className="eyebrow">{SITE_NAME}</p>
+              <h1>Look past the label.</h1>
+              <p className="lede">
+                A faster way to check the company behind a product from typed names, barcodes, or logo photos.
+              </p>
+              <p className="hero-note">
+                Free public-data lookup with clearer score states, source links, and phone-friendly search.
+              </p>
+              <LookupQuickLinks />
+              <div className="hero-actions">
+                {isInstallAvailable ? (
+                  <button className="secondary-button" type="button" onClick={handleInstallApp}>
+                    Install app
+                  </button>
+                ) : (
+                  <p className="install-copy">Install on phone or desktop from your browser menu.</p>
+                )}
+              </div>
+            </div>
+
+            <aside className="hero-aside" aria-label="BrandLens summary">
+              <div className="hero-glow" aria-hidden="true" />
+              <div className="hero-stat-card">
+                <p className="hero-stat-label">BrandLens</p>
+                <p className="hero-stat-value">3 ways to search</p>
+                <p className="hero-stat-note">Typed name, barcode, or photo-based text detection.</p>
+              </div>
+              <div className="hero-pill-row" aria-label="Highlights">
+                <span className="hero-pill">Public sources only</span>
+                <span className="hero-pill">Phone-ready</span>
+                <span className="hero-pill">Source-backed</span>
+              </div>
+            </aside>
           </section>
 
           <section className="lookup-grid">
-            <article className="info-panel lookup-card">
+            <article className="info-panel lookup-card" id="search">
               <h2>Search by product or company</h2>
               <p className="input-hint">
                 Type a product, brand, or company.
@@ -579,7 +957,7 @@ function App() {
                 <p className="status-banner lookup-status">Getting score...</p>
               ) : null}
 
-              <ScoreDetails title="Typed result" scoreResult={companyResult} compact />
+              <ScoreDetails title="Typed result" scoreResult={companyResult} compact lookupLabel="typed search" />
             </article>
 
             <article className="info-panel lookup-card">
@@ -642,26 +1020,178 @@ function App() {
                 </section>
               ) : null}
 
-              <ScoreDetails title="Barcode score" scoreResult={barcodeScoreResult} compact />
+              <ScoreDetails title="Barcode score" scoreResult={barcodeScoreResult} compact lookupLabel="barcode lookup" />
+            </article>
+
+            <article className="info-panel lookup-card" id="photo">
+              <h2>Photo lookup (beta)</h2>
+              <p className="input-hint">
+                Take or upload a logo or package photo. The app reads visible text, then runs the normal brand lookup.
+              </p>
+
+              <form className="score-form" onSubmit={handlePhotoSubmit}>
+                <label className="field-label" htmlFor="photo-search">
+                  Take or upload a brand photo
+                </label>
+                <input
+                  className="text-input photo-picker"
+                  id="photo-search"
+                  name="photo-search"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoFileChange}
+                />
+
+                <div className="hero-actions">
+                  <button className="primary-button" type="submit" disabled={isPhotoLoading}>
+                    {isPhotoLoading ? "Reading photo..." : "Read photo"}
+                  </button>
+                </div>
+              </form>
+
+              <p className="helper-copy">
+                Best for clear front-facing logos. This is OCR-based, so it works better when the brand name is visible.
+              </p>
+
+              <ul className="photo-tip-list">
+                <li>Center the logo or brand name.</li>
+                <li>Use bright light and avoid glare.</li>
+                <li>If the first choice looks wrong, tap another detected candidate below.</li>
+              </ul>
+
+              {photoPreviewUrl ? (
+                <div className="photo-preview-wrap">
+                  <img className="photo-preview" src={photoPreviewUrl} alt="Selected brand preview" />
+                </div>
+              ) : null}
+
+              {photoError ? (
+                <p className="status-banner status-banner-error lookup-status">{photoError}</p>
+              ) : null}
+
+              {isPhotoLoading ? (
+                <p className="status-banner lookup-status">Reading text from the image...</p>
+              ) : null}
+
+              {photoResult ? (
+                <section className="results-panel results-panel-compact">
+                  <div className="score-header">
+                    <div>
+                      <p className="eyebrow">Photo result</p>
+                      <h2>{photoScoreResult?.resolvedCompany || photoResult.selectedQuery}</h2>
+                      <p className="result-summary">
+                        OCR picked: <strong>{photoResult.selectedQuery}</strong>
+                      </p>
+                    </div>
+                    <p className="score-chip">OCR</p>
+                  </div>
+
+                  <div className="compact-meta">
+                    <p>Top candidates: <strong>{photoResult.candidates.map((candidate) => candidate.line).slice(0, 3).join(", ")}</strong></p>
+                  </div>
+
+                  {photoResult.extractedText ? (
+                    <p className="helper-copy">
+                      Text found: {photoResult.extractedText.replace(/\s+/g, " ").slice(0, 140)}
+                      {photoResult.extractedText.replace(/\s+/g, " ").length > 140 ? "..." : ""}
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {photoCandidates.length ? (
+                <div className="candidate-picker">
+                  <p className="field-label">Detected candidates</p>
+                  <div className="sample-chip-row">
+                    {photoCandidates.map((candidate) => (
+                      <button
+                        key={candidate.line}
+                        className={`sample-chip${
+                          photoResult?.selectedQuery === candidate.line ? " sample-chip-active" : ""
+                        }`}
+                        type="button"
+                        onClick={() => {
+                          setPhotoError("");
+                          setIsPhotoLoading(true);
+                          scorePhotoCandidate(candidate.line, photoCandidates, photoExtractedText)
+                            .catch(() => {
+                              setPhotoError("We could not score that detected text. Please type the name into the text box instead.");
+                            })
+                            .finally(() => {
+                              setIsPhotoLoading(false);
+                            });
+                        }}
+                      >
+                        {candidate.line}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <ScoreDetails title="Photo score" scoreResult={photoScoreResult} compact lookupLabel="photo OCR lookup" />
             </article>
           </section>
 
-          <section className="content-grid">
+          <section className="content-grid" id="recent">
             <article className="info-panel">
               <h2>What this MVP proves</h2>
               <ul>
                 <li>Typing works now.</li>
                 <li>Barcode lookup uses the same company resolver.</li>
-                <li>Logo detection can plug in later.</li>
+                <li>Photo lookup now uses OCR for visible brand text.</li>
               </ul>
             </article>
 
+            <article className="info-panel">
+              <h2>Recent searches</h2>
+              {recentSearches.length ? (
+                <>
+                  <div className="recent-search-list">
+                    {recentSearches.map((search) => (
+                      <button
+                        key={search.id}
+                        className="recent-search-item"
+                        type="button"
+                        onClick={() => applyRecentSearch(search)}
+                      >
+                        <span className="recent-search-type">{search.type}</span>
+                        <strong>{search.label}</strong>
+                        <span>{search.query}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="hero-actions">
+                    <button className="secondary-button" type="button" onClick={clearRecentSearches}>
+                      Clear recent
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="helper-copy">Your recent searches will appear here on this device.</p>
+              )}
+            </article>
+          </section>
+
+          <section className="content-grid">
             <article className="info-panel">
               <h2>Current catalog coverage</h2>
               <ul>
                 <li>Local demo companies: {demoCompanies.join(", ")}.</li>
                 <li>Best coverage: food, drinks, beauty, and household brands.</li>
                 <li>Next gain: expand the brand catalog.</li>
+              </ul>
+            </article>
+
+            <article className="info-panel" id="about">
+              <h2>About BrandLens</h2>
+              <ul>
+                <li>BrandLens helps users look up the company behind a product.</li>
+                <li>It accepts typed names, barcodes, and photo-based text detection.</li>
+                <li>It uses free public sources only.</li>
+                <li>It is not an official ESG rating service or legal certification.</li>
+                <li>Some results are verified, some are estimates, and some are too weak to trust yet.</li>
               </ul>
             </article>
           </section>

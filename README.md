@@ -1,36 +1,40 @@
-# App Challenge
+# BrandLens
 
-This is a lightweight starter app built with React and Vite inside a Git repository.
+BrandLens is a React + Vite project that stays live as a website and now also includes native iPhone and Android app shells through Capacitor.
 
-## Start locally
+## Website
 
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Run the development server:
+Run the web app locally:
 
 ```bash
-npm run dev
+bash scripts/local-npm.sh install
+bash scripts/local-npm.sh run dev
 ```
 
-3. Open the local URL shown in the terminal.
+Then open the local URL shown in the terminal.
 
-## Push to GitHub
+## Native App
 
-Create a new empty repository on GitHub, then run:
+Build the website and sync it into the mobile app projects:
 
 ```bash
-git add .
-git commit -m "Initial app scaffold"
-git remote add origin <your-github-repo-url>
-git push -u origin main
+bash scripts/local-npm.sh run app:sync
 ```
 
-## What to build next
+Open the iPhone project in Xcode:
 
-- Add your real app features in `src/App.jsx`
-- Split UI into reusable components
-- Add routing, data fetching, or authentication when you are ready
+```bash
+bash scripts/local-npm.sh run app:open:ios
+```
+
+Open the Android project in Android Studio:
+
+```bash
+bash scripts/local-npm.sh run app:open:android
+```
+
+## Notes
+
+- The website and app use the same codebase.
+- The native app shells live in `ios/` and `android/`.
+- Public web hosting and native app store publishing are separate steps.
