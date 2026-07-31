@@ -283,6 +283,22 @@ function extractPhotoCandidates(text) {
     .slice(0, 5);
 }
 
+function getPhotoQualityLabel(confidence) {
+  if (typeof confidence !== "number") {
+    return "unknown";
+  }
+
+  if (confidence >= 80) {
+    return "strong";
+  }
+
+  if (confidence >= 58) {
+    return "usable";
+  }
+
+  return "weak";
+}
+
 function LookupQuickLinks() {
   return (
     <nav className="mini-link-strip" aria-label="Page links">
@@ -566,6 +582,7 @@ function App() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoCandidates, setPhotoCandidates] = useState([]);
   const [photoExtractedText, setPhotoExtractedText] = useState("");
+  const [photoOcrConfidence, setPhotoOcrConfidence] = useState(null);
   const [companyResult, setCompanyResult] = useState(null);
   const [barcodeResult, setBarcodeResult] = useState(null);
   const [photoResult, setPhotoResult] = useState(null);
@@ -754,6 +771,7 @@ function App() {
     setPhotoPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
     setPhotoCandidates([]);
     setPhotoExtractedText("");
+    setPhotoOcrConfidence(null);
     setPhotoError("");
     setPhotoResult(null);
   }
@@ -792,12 +810,32 @@ function App() {
 
       const recognition = await worker.recognize(photoFile);
       const extractedText = recognition.data.text?.trim() || "";
+      const wordConfidences = (recognition.data.words || [])
+        .map((word) => word.confidence)
+        .filter((value) => typeof value === "number" && !Number.isNaN(value));
+      const averageOcrConfidence = wordConfidences.length
+        ? Number(
+            (
+              wordConfidences.reduce((sum, value) => sum + value, 0) / wordConfidences.length
+            ).toFixed(1),
+          )
+        : null;
       const candidates = extractPhotoCandidates(extractedText);
       const bestCandidate =
         candidates.find((candidate) => candidate.localMatch.resolvedCompany) || candidates[0] || null;
 
       setPhotoExtractedText(extractedText);
       setPhotoCandidates(candidates);
+      setPhotoOcrConfidence(averageOcrConfidence);
+
+      if (
+        typeof averageOcrConfidence === "number" &&
+        averageOcrConfidence < 58
+      ) {
+        setPhotoResult(null);
+        setPhotoError("The photo text read was too weak to trust. Please retake the picture or type the product, brand, or company name into the text box instead.");
+        return;
+      }
 
       if (!bestCandidate) {
         setPhotoResult(null);
@@ -1068,6 +1106,12 @@ function App() {
 
               {photoError ? (
                 <p className="status-banner status-banner-error lookup-status">{photoError}</p>
+              ) : null}
+
+              {typeof photoOcrConfidence === "number" ? (
+                <p className="helper-copy">
+                  Photo text quality: <strong>{getPhotoQualityLabel(photoOcrConfidence)}</strong> ({Math.round(photoOcrConfidence)}% OCR confidence).
+                </p>
               ) : null}
 
               {isPhotoLoading ? (

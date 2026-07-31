@@ -234,6 +234,185 @@ const COMPANY_FIXTURES = [
     aliases: ["reckitt", "reckitt benckiser", "reckitt plc", "rb"],
     sdgFocus: ["3", "12", "13"],
   },
+  {
+    canonicalName: "Kenvue",
+    countryCode: "USA",
+    sector: "consumer-goods",
+    brands: [
+      "neutrogena",
+      "aveeno",
+      "listerine",
+      "band aid",
+      "band-aid",
+      "tylenol",
+      "motrin",
+      "johnsons",
+      "johnson's",
+      "stayfree",
+      "ogx",
+    ],
+    aliases: ["kenvue", "kenvue inc", "johnson and johnson consumer", "jj consumer health"],
+    sdgFocus: ["3", "6", "12"],
+  },
+  {
+    canonicalName: "The Hershey Company",
+    countryCode: "USA",
+    sector: "food",
+    brands: [
+      "hershey's",
+      "hersheys",
+      "reeses",
+      "reese's",
+      "kit kat us",
+      "jolly rancher",
+      "twizzlers",
+      "ice breakers",
+      "skinnypop",
+      "dot's",
+      "dots pretzels",
+    ],
+    aliases: ["hershey", "the hershey company", "hershey company"],
+    sdgFocus: ["2", "8", "12"],
+  },
+  {
+    canonicalName: "General Mills",
+    countryCode: "USA",
+    sector: "food",
+    brands: [
+      "cheerios",
+      "nature valley",
+      "haagen dazs",
+      "haagen-dazs",
+      "annies",
+      "annie's",
+      "betty crocker",
+      "totino's",
+      "totinos",
+      "old el paso",
+      "blue buffalo",
+      "yoplait",
+    ],
+    aliases: ["general mills", "general mills inc", "gmi"],
+    sdgFocus: ["2", "12", "13"],
+  },
+  {
+    canonicalName: "Church & Dwight",
+    countryCode: "USA",
+    sector: "consumer-goods",
+    brands: [
+      "arm and hammer",
+      "arm & hammer",
+      "oxiclean",
+      "oxy clean",
+      "batiste",
+      "trojan",
+      "nair",
+      "vitafusion",
+      "hero cosmetics",
+      "therabreath",
+      "waterpik",
+    ],
+    aliases: ["church and dwight", "church & dwight", "church dwight"],
+    sdgFocus: ["3", "6", "12"],
+  },
+  {
+    canonicalName: "The Clorox Company",
+    countryCode: "USA",
+    sector: "consumer-goods",
+    brands: [
+      "clorox",
+      "burts bees",
+      "burt's bees",
+      "hidden valley",
+      "fresh step",
+      "glad",
+      "kingsford",
+      "pine sol",
+      "pine-sol",
+      "brita",
+    ],
+    aliases: ["clorox", "the clorox company", "clorox company"],
+    sdgFocus: ["6", "12", "13"],
+  },
+  {
+    canonicalName: "Johnsonville",
+    countryCode: "USA",
+    sector: "food",
+    brands: ["johnsonville", "johnsonville sausage"],
+    aliases: ["johnsonville", "johnsonville llc"],
+    sdgFocus: ["2", "8", "12"],
+  },
+  {
+    canonicalName: "Kellanova",
+    countryCode: "USA",
+    sector: "food",
+    brands: [
+      "pringles",
+      "cheez it",
+      "cheez-it",
+      "pop tarts",
+      "pop-tarts",
+      "eggo",
+      "rice krispies treats",
+      "special k",
+      "frosted flakes",
+    ],
+    aliases: ["kellanova", "kellanova company", "kellogg snack division"],
+    sdgFocus: ["2", "12", "13"],
+  },
+  {
+    canonicalName: "WK Kellogg Co",
+    countryCode: "USA",
+    sector: "food",
+    brands: [
+      "kelloggs",
+      "kellogg's",
+      "corn flakes",
+      "froot loops",
+      "frootloops",
+      "mini wheats",
+      "mini-wheats",
+      "raisin bran",
+    ],
+    aliases: ["wk kellogg", "wk kellogg co", "wk kellogg company"],
+    sdgFocus: ["2", "12", "13"],
+  },
+  {
+    canonicalName: "Beiersdorf",
+    countryCode: "DEU",
+    sector: "beauty",
+    brands: [
+      "nivea",
+      "eucerin",
+      "aquaphor",
+      "coppertone",
+      "labello",
+      "elastoplast",
+    ],
+    aliases: ["beiersdorf", "beiersdorf ag"],
+    sdgFocus: ["3", "12", "13"],
+  },
+  {
+    canonicalName: "SC Johnson",
+    countryCode: "USA",
+    sector: "consumer-goods",
+    brands: [
+      "windex",
+      "pledge",
+      "scrubbing bubbles",
+      "glade",
+      "raid",
+      "ziploc",
+      "shout",
+      "off",
+      "off!",
+      "method",
+      "mrs meyers",
+      "mrs. meyer's",
+    ],
+    aliases: ["sc johnson", "s c johnson", "sc johnson and son"],
+    sdgFocus: ["6", "12", "13"],
+  },
 ];
 
 const LEGAL_SUFFIXES = new Set([
@@ -363,6 +542,13 @@ const SOURCE_CONSENSUS_RULES = {
   minimumWeightFactor: 0.25,
   disagreementWarningSpread: 18,
   disagreementHighSpread: 30,
+};
+
+const MATCH_GUARDRAILS = {
+  minimumCatalogConfidence: 0.52,
+  minimumContextOnlyConfidence: 0.74,
+  minimumContextOnlySources: 3,
+  minimumPhotoOcrConfidence: 58,
 };
 
 const WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php";
@@ -507,6 +693,22 @@ export function resolveCompanyEntity(input, catalog = COMPANY_FIXTURES) {
       .map((company) => company.canonicalName)
       .slice(0, 3),
   };
+}
+
+function getResolutionStrength(resolution) {
+  if (!resolution?.resolvedCompany) {
+    return "none";
+  }
+
+  if (resolution.confidence >= 0.82) {
+    return "strong";
+  }
+
+  if (resolution.confidence >= 0.68) {
+    return "medium";
+  }
+
+  return "weak";
 }
 
 export function sanitizeBarcodeInput(input) {
@@ -1517,6 +1719,7 @@ export async function getCompanySustainabilityScore(companyName, options = {}) {
   }
 
   const company = resolution.resolvedCompany;
+  const resolutionStrength = getResolutionStrength(resolution);
   const evidenceHints = uniqueValues([companyName, ...(options.evidenceHints || [])]);
   const directProductEvidence = options.directProductEvidence || null;
   const settled = await Promise.allSettled([
@@ -1617,12 +1820,27 @@ export async function getCompanySustainabilityScore(companyName, options = {}) {
   );
 
   const hasContextualEstimate = typeof score === "number";
-  const finalScore = hasCompanySpecificEvidence ? score : hasContextualEstimate ? score : null;
-  const scoreStatus = hasCompanySpecificEvidence
+  const hasEnoughCatalogConfidence = resolution.confidence >= MATCH_GUARDRAILS.minimumCatalogConfidence;
+  const allowContextOnlyEstimate =
+    hasContextualEstimate &&
+    resolution.confidence >= MATCH_GUARDRAILS.minimumContextOnlyConfidence &&
+    contextEvidenceCount >= MATCH_GUARDRAILS.minimumContextOnlySources &&
+    resolutionStrength !== "weak";
+  const allowScoredResult = hasCompanySpecificEvidence && hasEnoughCatalogConfidence;
+  const finalScore = allowScoredResult
+    ? score
+    : allowContextOnlyEstimate
+      ? score
+      : null;
+  const scoreStatus = allowScoredResult
     ? "scored"
-    : hasContextualEstimate
+    : allowContextOnlyEstimate
       ? "contextual-estimate"
       : "insufficient-company-specific-data";
+  const weakMatchBlocked = hasContextualEstimate && !allowScoredResult && !allowContextOnlyEstimate;
+  const scoreError = weakMatchBlocked
+    ? "BrandLens found a possible company, but the match or evidence is still too weak to score safely."
+    : null;
 
   return {
     input: companyName,
@@ -1630,10 +1848,12 @@ export async function getCompanySustainabilityScore(companyName, options = {}) {
     resolvedCompany: company.canonicalName,
     matchedBy: resolution.matchedBy,
     confidence: resolution.confidence,
+    resolutionStrength,
     score: finalScore,
     scoreConfidence,
     scoreConfidenceLabel: getScoreConfidenceLabel(scoreConfidence),
     scoreStatus,
+    error: scoreError,
     scoringMethod:
       "One internal rubric is used for every company. External APIs only supply raw evidence signals, which are normalized into the same 0-100 product-environmental, disclosure, traceability, and context inputs before the final score is computed. When sources disagree, the app uses a median-centered consensus blend that downweights outliers instead of averaging them blindly.",
     rubricVersion: UNIFIED_SCORING_RUBRIC.version,
@@ -1650,6 +1870,7 @@ export async function getCompanySustainabilityScore(companyName, options = {}) {
       productEnvironmental: mergedProductEvidence?.environmentalScore,
       packaging: mergedProductEvidence?.packagingScore,
       sdgGoals: sdgContext?.goals ?? [],
+      contextEvidenceCount,
     },
     sourceAgreement,
     sourceAvailability: {
