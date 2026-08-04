@@ -890,7 +890,7 @@ function App() {
           type="button"
           onClick={() => setActiveTab("logic")}
         >
-          How scoring works
+          How it works
         </button>
       </section>
 
@@ -901,10 +901,10 @@ function App() {
               <p className="eyebrow">{SITE_NAME}</p>
               <h1>Look past the label.</h1>
               <p className="lede">
-                A faster way to check the company behind a product from typed names, barcodes, or logo photos.
+                Check the company behind a product by name, barcode, or photo.
               </p>
               <p className="hero-note">
-                Free public-data lookup with clearer score states, source links, and phone-friendly search.
+                Free public-data lookup with simpler score states and a cleaner phone-first search flow.
               </p>
               <LookupQuickLinks />
               <div className="hero-actions">
