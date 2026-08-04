@@ -574,8 +574,6 @@ function ScoreDetails({ title, scoreResult, compact = false, lookupLabel = "type
 
 function App() {
   const [activeTab, setActiveTab] = useState("lookup");
-  const [installPromptEvent, setInstallPromptEvent] = useState(null);
-  const [isInstallAvailable, setIsInstallAvailable] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [photoFile, setPhotoFile] = useState(null);
@@ -641,27 +639,6 @@ function App() {
   }, [deferredCompanyQuery]);
 
   useEffect(() => {
-    function handleBeforeInstallPrompt(event) {
-      event.preventDefault();
-      setInstallPromptEvent(event);
-      setIsInstallAvailable(true);
-    }
-
-    function handleAppInstalled() {
-      setInstallPromptEvent(null);
-      setIsInstallAvailable(false);
-    }
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, []);
-
-  useEffect(() => {
     try {
       const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
       if (saved) {
@@ -687,17 +664,6 @@ function App() {
       }
     };
   }, [photoPreviewUrl]);
-
-  async function handleInstallApp() {
-    if (!installPromptEvent) {
-      return;
-    }
-
-    await installPromptEvent.prompt();
-    await installPromptEvent.userChoice;
-    setInstallPromptEvent(null);
-    setIsInstallAvailable(false);
-  }
 
   async function handleCompanySubmit(event) {
     event.preventDefault();
@@ -908,13 +874,7 @@ function App() {
               </p>
               <LookupQuickLinks />
               <div className="hero-actions">
-                {isInstallAvailable ? (
-                  <button className="secondary-button" type="button" onClick={handleInstallApp}>
-                    Install app
-                  </button>
-                ) : (
-                  <p className="install-copy">Install on phone or desktop from your browser menu.</p>
-                )}
+                <p className="install-copy">Built for quick phone browsing, with no sideways scrolling needed.</p>
               </div>
             </div>
 
