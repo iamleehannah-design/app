@@ -21,6 +21,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 a {
@@ -740,7 +741,8 @@ li + li {
     min-height: 2.8rem;
     padding: 0.75rem 0.95rem;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
+    line-height: 1.2;
   }
 
   .mini-link {
@@ -779,19 +781,14 @@ li + li {
   }
 
   .sample-chip-row {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.15rem;
-    margin-inline: -0.1rem;
-    scrollbar-width: none;
-  }
-
-  .sample-chip-row::-webkit-scrollbar {
-    display: none;
+    flex-wrap: wrap;
+    overflow: visible;
+    padding-bottom: 0;
+    margin-inline: 0;
   }
 
   .sample-chip {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     min-height: 2.6rem;
   }
 
