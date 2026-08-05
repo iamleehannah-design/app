@@ -306,8 +306,67 @@ function LookupQuickLinks() {
       <a className="mini-link" href="#search">Search</a>
       <a className="mini-link" href="#photo">Photo</a>
       <a className="mini-link" href="#recent">Recent</a>
-      <a className="mini-link" href="#about">About</a>
     </nav>
+  );
+}
+
+function AboutTab() {
+  return (
+    <>
+      <section className="hero-card logic-hero">
+        <p className="eyebrow">{SITE_NAME}</p>
+        <h1>About BrandLens</h1>
+        <p className="lede">
+          BrandLens helps people check the company behind a product using typed names, barcodes, and photo-based text detection.
+        </p>
+        <p className="hero-note">
+          It is a public-data website, not an official ESG rating service or certification tool.
+        </p>
+      </section>
+
+      <section className="content-grid logic-section">
+        <article className="info-panel">
+          <h2>What BrandLens does</h2>
+          <ul>
+            <li>Matches a product, brand, or barcode to a likely parent company.</li>
+            <li>Pulls public product and context evidence.</li>
+            <li>Shows a company score only when the app can support it.</li>
+            <li>Flags weaker results more cautiously instead of acting fully certain.</li>
+          </ul>
+        </article>
+
+        <article className="info-panel">
+          <h2>What BrandLens does not do</h2>
+          <ul>
+            <li>It does not use private corporate databases.</li>
+            <li>It does not claim to be an official ESG rating agency.</li>
+            <li>It does not guarantee every brand has enough public evidence yet.</li>
+            <li>It may return no score when the match or evidence is too weak.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section className="content-grid">
+        <article className="info-panel">
+          <h2>Current inputs</h2>
+          <ul>
+            <li>Typed brand, product, or company name</li>
+            <li>UPC or EAN barcode</li>
+            <li>Logo or package photo with readable brand text</li>
+          </ul>
+        </article>
+
+        <article className="info-panel">
+          <h2>Why some results are limited</h2>
+          <ul>
+            <li>Some brands do not have enough direct public product evidence.</li>
+            <li>Some names only resolve through weak public matches.</li>
+            <li>Photo lookup depends on readable text, not magic logo recognition.</li>
+            <li>BrandLens prefers caution when the evidence is thin.</li>
+          </ul>
+        </article>
+      </section>
+    </>
   );
 }
 
@@ -319,9 +378,6 @@ function ScoringMethodTab() {
         <h1>How the score is built</h1>
         <p className="lede">
           The app pulls public evidence, converts it into one rubric, and computes one score.
-        </p>
-        <p className="hero-note">
-          Random names can still show a number when only context data is available.
         </p>
       </section>
 
@@ -391,16 +447,6 @@ function ScoringMethodTab() {
       </section>
 
       <section className="content-grid">
-        <article className="info-panel">
-          <h2>Why fake-looking scores can appear</h2>
-          <ul>
-            <li>A typed name can miss the local catalog but still match a public Wikidata entity.</li>
-            <li>The app can still compute a context-based number.</li>
-            <li>That number can still appear when product evidence is zero.</li>
-            <li>That is why some random names can look more scored than they are.</li>
-          </ul>
-        </article>
-
         <article className="info-panel">
           <h2>How to read the current result states</h2>
           <ul>
@@ -858,6 +904,13 @@ function App() {
         >
           How it works
         </button>
+        <button
+          className={`tab-button${activeTab === "about" ? " tab-button-active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("about")}
+        >
+          About
+        </button>
       </section>
 
       {activeTab === "lookup" ? (
@@ -896,9 +949,6 @@ function App() {
           <section className="lookup-grid">
             <article className="info-panel lookup-card" id="search">
               <h2>Search by product or company</h2>
-              <p className="input-hint">
-                Type a product, brand, or company.
-              </p>
 
               <form className="score-form" onSubmit={handleCompanySubmit}>
                 <label className="field-label" htmlFor="company-search">
@@ -1140,15 +1190,6 @@ function App() {
 
           <section className="content-grid" id="recent">
             <article className="info-panel">
-              <h2>What this MVP proves</h2>
-              <ul>
-                <li>Typing works now.</li>
-                <li>Barcode lookup uses the same company resolver.</li>
-                <li>Photo lookup now uses OCR for visible brand text.</li>
-              </ul>
-            </article>
-
-            <article className="info-panel">
               <h2>Recent searches</h2>
               {recentSearches.length ? (
                 <>
@@ -1187,21 +1228,12 @@ function App() {
                 <li>Next gain: expand the brand catalog.</li>
               </ul>
             </article>
-
-            <article className="info-panel" id="about">
-              <h2>About BrandLens</h2>
-              <ul>
-                <li>BrandLens helps users look up the company behind a product.</li>
-                <li>It accepts typed names, barcodes, and photo-based text detection.</li>
-                <li>It uses free public sources only.</li>
-                <li>It is not an official ESG rating service or legal certification.</li>
-                <li>Some results are verified, some are estimates, and some are too weak to trust yet.</li>
-              </ul>
-            </article>
           </section>
         </>
-      ) : (
+      ) : activeTab === "logic" ? (
         <ScoringMethodTab />
+      ) : (
+        <AboutTab />
       )}
     </main>
   );
